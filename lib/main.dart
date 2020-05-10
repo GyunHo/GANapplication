@@ -7,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:slider_button/slider_button.dart';
+import 'package:mime/mime.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -199,16 +200,28 @@ class _ImageInputPageState extends State<ImageInputPage> {
   }
 
   upload() async {
-    StorageReference _reference =  FirebaseStorage.instance
-        .ref().child('img').child('${DateTime.now().millisecondsSinceEpoch.toString()}.jpg');
-    StorageUploadTask task = _reference.putFile(_originImage);
-    await task.onComplete.then((StorageTaskSnapshot snapshot)  async {
-      print( await snapshot.ref.getBucket());
-      print( await snapshot.ref.getName());
-
+    StorageReference reference = FirebaseStorage.instance.ref();
+    String fileNameHead = DateTime.now().millisecondsSinceEpoch.toString();
+    String originImageName = 'origin_$fileNameHead.jpg';
+    String makeupImageName = 'makeup_$fileNameHead.jpg';
+    String bucketName = await reference.getBucket();
+    reference
+        .child('img/$originImageName')
+        .putFile(_originImage)
+        .onComplete
+        .then((value1) async {
+          print(await value1.ref.getPath());
+      reference
+          .child('img/$makeupImageName')
+          .putFile(_makeUpImage)
+          .onComplete
+          .then((value2) {
+        Firestore.instance.collection('img').document().setData({
+          'origin': originImageName,
+          'makeup': makeupImageName,
+          'bucket': bucketName
+        });
+      });
     });
-
-    }
-
-
+  }
 }
